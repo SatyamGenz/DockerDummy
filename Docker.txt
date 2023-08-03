@@ -1,0 +1,210 @@
+Docker is tool for running application inside of an isolated environment , basically like virtual emv.
+
+Docker help us create a world and inside of the world we have all dependencies that we need to run an application. SO if we run on my machine then it will run all machine.
+
+Dockerfile to create image
+
+1. Base image
+- Need to tell in Dockerfile while creating image which version of python should be their
+
+FROM python:3.11-alpine
+
+2. Working Directory
+- This is basically telling docker that inside of my image I would like to create a directory called app 
+- Let say you do not assign this and if you tried to run the image and ,
+docker run -it <imageName> sh
+ls
+you will get some files
+
+WORKDIR /app
+
+3. ENV FLASK_APP = app.py
+
+When you include ENV FLASK_APP=app.py in your Dockerfile, you are defining an environment variable named FLASK_APP and setting its value to app.py.
+
+Environment variables are a way to pass configuration information to applications running inside a Docker container. They can be accessed by the application during runtime and can influence its behavior. In the context of a Flask application, the FLASK_APP environment variable is often used to specify the entry point or main file of the Flask application.
+
+When you set FLASK_APP=app.py, it means that your Flask application should look for the app.py file as the entry point when running the flask command. For example, if you want to run your Flask app in the container, you can do something like this in your Dockerfile:
+
+Dockerfile
+Copy code
+# Use the official Python 3.11.x image based on Alpine Linux
+FROM python:3.11-alpine
+
+# Add your application files to the container
+COPY app.py /app.py
+
+# Set the working directory
+WORKDIR /
+
+# Set the environment variable for Flask
+ENV FLASK_APP=app.py
+
+# Install Flask (if not already installed)
+RUN pip install flask
+
+# Run your Flask application
+CMD ["flask", "run", "--host=0.0.0.0"]
+In this example, the ENV FLASK_APP=app.py line sets the FLASK_APP environment variable to app.py, and the CMD line runs the Flask application using the flask run command, which will use app.py as the entry point for your Flask application.
+
+By using environment variables, you can make your Docker container flexible and configurable without having to modify the source code every time you want to change the entry point or any other configuration values.
+
+
+4. Need to install flask.... way of doing is ....
+- create the txt file called requirenment.txt in project
+INSIDE THIS FILE...
+
+FLASK==1.1.2 --> Give the latest version of flask
+Now also want to copy this inside /app what we create as WORKDIR
+
+ COPY ./requirements.txt ./
+
+
+
+5. Need to install Flask inside the
+
+RUN pip install -r requirenments.txt
+
+6. I want to copy all thing remaining inside the /app directory  main.py also dockerfile also
+
+COPY ./ ./
+
+7. Now need to run Python application 
+CMD ["python","main.py"]
+
+
+In above I got some errors...
+First their should no spaces when write ENV
+Second Requirement.txt spelling should requirement.txt
+Third Version of Flask we write 
+
+Build image
+docker build -t satyamgenz/pythonapp .
+
+docker run satyamgenz/pythonapp
+
+But while we doing on port it is not showing so now need to connect port.....
+
+by doing....
+docker run -p 80:5000 satyamgenz/pythonapp
+here 80 in localhost
+5000 of container...
+
+Even though it not worked beacause we forget to write route
+
+@app.route("/",methods=["GET"])
+
+Now if you do run you will get output at localhost...
+
+
+
+-------------------
+But when you change something it is not reflect on thier
+
+When you change the files it should reflex on container... and we will do by using volumes
+
+-v $(pwd):/app .... my current working directory 
+
+docker run -p 80:5000 -v $(pwd):/app satyamgenz/flaskpython
+
+---------------------------
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+
+I get that...
+
+In Dockerfile need to create environmental variable...
+
+ENV FLASK_ENV=development
+
+I set FLASK_ENV to development
+
+
+--------------------------------------------------------------------------
+Frontend
+
+EXPOSE 3000 ..
+The port that this container should listen on
+Define network ports for this container to listen on at runtime
+
+
+docker build -t satyamgenz/reactflaskapp .
+
+docker run -p 3000:3000 sa
+tyamgenz/reactflaskapp
+
+-----------------------------------------------------------------------------------
+
+Connect Flask to react
+
+By Docker Compose
+
+- docker compose is an orchestration tool it is used to manage multiple container within our application
+
+create file 
+docker-compose.yml
+
+
+1. Version of Docker compose
+
+version:"3"
+
+2. Services
+- Basically containers I would like to manage
+- In this we have two services 
+
+
+version: "3"
+
+services:
+   backend:
+    build: ./backend
+    ports:
+    - "80:5000"
+    volumes:
+    - ./backend:/app
+    environment:
+      FLASK_ENV: development
+
+    web:
+      build: ./frontend
+      ports:
+      - "3000:3000"
+      volumes:
+      - ./frontend:/app
+      depends_on:
+      - backend
+
+
+To run this we will use docker compose
+
+before that we should send json file fron backend
+
+
+version: "3"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "80:5000"
+    volumes:
+      - ./backend:/app
+    environment:
+      FLASK_ENV: development
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - backend
+
+
+docker-compose up
+
+To resolve CORS ERROR,
+By Setting proxy inside package .json
+
+"proxy" : "http://backend:80"
